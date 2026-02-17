@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-02-17
+
 ### Added
 
 - **Railway-oriented programming pattern for Dart**: Core abstractions for building strongly-typed, declarative workflows in application-layer orchestration.
