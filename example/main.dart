@@ -88,7 +88,7 @@ class PasswordStrengthGuard implements RailwayGuard<CreateUserContext, CreateUse
 }
 
 // Steps - State mutation with context updates
-class CreateUserStep implements RailwayStep<CreateUserContext, CreateUserError> {
+class CreateUserStep extends RailwayStep<CreateUserContext, CreateUserError> {
   @override
   Future<Either<CreateUserError, CreateUserContext>> run(CreateUserContext context) async {
     // Simulate user creation
@@ -101,7 +101,7 @@ class CreateUserStep implements RailwayStep<CreateUserContext, CreateUserError> 
   }
 }
 
-class SendVerificationEmailStep implements RailwayStep<CreateUserContext, CreateUserError> {
+class SendVerificationEmailStep extends RailwayStep<CreateUserContext, CreateUserError> {
   @override
   Future<Either<CreateUserError, CreateUserContext>> run(CreateUserContext context) async {
     // Simulate sending email

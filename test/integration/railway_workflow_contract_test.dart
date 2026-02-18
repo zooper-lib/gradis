@@ -88,10 +88,10 @@ class PasswordStrengthGuard implements RailwayGuard<CreateUserContext, CreateUse
 }
 
 // Steps with error mapping and side effects
-class CreateUserStep implements RailwayStep<CreateUserContext, CreateUserError> {
+class CreateUserStep extends RailwayStep<CreateUserContext, CreateUserError> {
   final MockUserRepository repository;
 
-  const CreateUserStep(this.repository);
+  CreateUserStep(this.repository);
 
   @override
   Future<Either<CreateUserError, CreateUserContext>> run(
@@ -113,10 +113,10 @@ class CreateUserStep implements RailwayStep<CreateUserContext, CreateUserError> 
   }
 }
 
-class VerifyEmailStep implements RailwayStep<CreateUserContext, CreateUserError> {
+class VerifyEmailStep extends RailwayStep<CreateUserContext, CreateUserError> {
   final MockEmailService emailService;
 
-  const VerifyEmailStep(this.emailService);
+  VerifyEmailStep(this.emailService);
 
   @override
   Future<Either<CreateUserError, CreateUserContext>> run(

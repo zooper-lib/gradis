@@ -44,12 +44,12 @@ class LoggingGuard implements RailwayGuard<TestContext, TestError> {
 }
 
 // Logging step
-class LoggingStep implements RailwayStep<TestContext, TestError> {
+class LoggingStep extends RailwayStep<TestContext, TestError> {
   final String logMessage;
   final int increment;
   final bool shouldFail;
 
-  const LoggingStep(
+  LoggingStep(
     this.logMessage, {
     this.increment = 1,
     this.shouldFail = false,
@@ -85,9 +85,9 @@ void main() {
     test('all operations succeed returns final context', () async {
       final railway = const Railway<TestContext, TestError>()
           .guard(const LoggingGuard('guard1'))
-          .step(const LoggingStep('step1', increment: 10))
+          .step(LoggingStep('step1', increment: 10))
           .guard(const LoggingGuard('guard2'))
-          .step(const LoggingStep('step2', increment: 5));
+          .step(LoggingStep('step2', increment: 5));
 
       final result = await railway.run(const TestContext(log: []));
 
@@ -98,9 +98,9 @@ void main() {
 
     test('guard failure stops execution and returns error', () async {
       final railway = const Railway<TestContext, TestError>()
-          .step(const LoggingStep('step1'))
+          .step(LoggingStep('step1'))
           .guard(const LoggingGuard('guard1', shouldFail: true))
-          .step(const LoggingStep('step2'));
+          .step(LoggingStep('step2'));
 
       final result = await railway.run(const TestContext(log: []));
 
@@ -110,9 +110,9 @@ void main() {
 
     test('step failure stops execution and returns error', () async {
       final railway = const Railway<TestContext, TestError>()
-          .step(const LoggingStep('step1'))
-          .step(const LoggingStep('step2', shouldFail: true))
-          .step(const LoggingStep('step3'));
+          .step(LoggingStep('step1'))
+          .step(LoggingStep('step2', shouldFail: true))
+          .step(LoggingStep('step3'));
 
       final result = await railway.run(const TestContext(log: []));
 
@@ -139,10 +139,10 @@ void main() {
     test('Either short-circuit behavior with fold', () async {
       // This test verifies that fold-based composition short-circuits correctly
       final railway = const Railway<TestContext, TestError>()
-          .step(const LoggingStep('step1', increment: 1))
+          .step(LoggingStep('step1', increment: 1))
           .guard(const LoggingGuard('guard1', shouldFail: true))
-          .step(const LoggingStep('step2', increment: 1))
-          .step(const LoggingStep('step3', increment: 1));
+          .step(LoggingStep('step2', increment: 1))
+          .step(LoggingStep('step3', increment: 1));
 
       final result = await railway.run(const TestContext(log: [], value: 0));
 
@@ -152,9 +152,9 @@ void main() {
 
     test('execution is deterministic and predictable', () async {
       final railway = const Railway<TestContext, TestError>()
-          .step(const LoggingStep('a', increment: 1))
-          .step(const LoggingStep('b', increment: 2))
-          .step(const LoggingStep('c', increment: 3));
+          .step(LoggingStep('a', increment: 1))
+          .step(LoggingStep('b', increment: 2))
+          .step(LoggingStep('c', increment: 3));
 
       // Run multiple times
       for (var i = 0; i < 5; i++) {
@@ -169,7 +169,7 @@ void main() {
 }
 
 // Helper class to track execution order
-class _OrderTrackingStep implements RailwayStep<TestContext, TestError> {
+class _OrderTrackingStep extends RailwayStep<TestContext, TestError> {
   final String name;
   final List<String> executionOrder;
 

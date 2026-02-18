@@ -30,11 +30,11 @@ class TestGuard implements RailwayGuard<TestContext, TestError> {
 }
 
 // Test step
-class TestStep implements RailwayStep<TestContext, TestError> {
+class TestStep extends RailwayStep<TestContext, TestError> {
   final int increment;
   final bool shouldFail;
 
-  const TestStep({this.increment = 1, this.shouldFail = false});
+  TestStep({this.increment = 1, this.shouldFail = false});
 
   @override
   Future<Either<TestError, TestContext>> run(TestContext context) async {
@@ -61,7 +61,7 @@ void main() {
 
     test('step() returns new immutable instance', () {
       final railway1 = const Railway<TestContext, TestError>();
-      final railway2 = railway1.step(const TestStep());
+      final railway2 = railway1.step(TestStep());
 
       expect(railway1, isNot(same(railway2)));
     });
@@ -70,8 +70,8 @@ void main() {
       final railway = const Railway<TestContext, TestError>()
           .guard(const TestGuard())
           .guard(const TestGuard())
-          .step(const TestStep(increment: 10))
-          .step(const TestStep(increment: 5));
+          .step(TestStep(increment: 10))
+          .step(TestStep(increment: 5));
 
       final result = await railway.run(const TestContext(0));
 
@@ -82,7 +82,7 @@ void main() {
     test('original railway unchanged after builder calls', () async {
       final railway1 = const Railway<TestContext, TestError>();
       railway1.guard(const TestGuard());
-      railway1.step(const TestStep());
+      railway1.step(TestStep());
 
       // Original railway should still be empty
       final result = await railway1.run(const TestContext(42));
@@ -93,7 +93,7 @@ void main() {
     test('type safety with context and error types', () {
       // This test verifies compile-time type safety
       // If this compiles, the type constraints are working correctly
-      final railway = const Railway<TestContext, TestError>().guard(const TestGuard()).step(const TestStep());
+      final railway = const Railway<TestContext, TestError>().guard(const TestGuard()).step(TestStep());
 
       expect(railway, isA<Railway<TestContext, TestError>>());
     });

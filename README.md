@@ -14,6 +14,8 @@ Gradis implements a railway pattern for application-layer workflows in Clean Arc
 - **Automatic short-circuiting** on first error
 - **Single unified error type** per railway (no runtime casting)
 - **Transaction-agnostic** execution
+- **Compensation/rollback** for failed workflows (Saga pattern)
+- **Conditional branching** with predicate-based execution
 
 ## Installation
 
@@ -56,16 +58,22 @@ Guards return `Right(null)` on success or `Left(error)` on validation failure.
 Steps perform **state mutation** and return an updated context:
 
 ```dart
-class CreateUserStep implements RailwayStep<CreateUserContext, CreateUserError> {
+class CreateUserStep extends RailwayStep<CreateUserContext, CreateUserError> {
   @override
   Future<Either<CreateUserError, CreateUserContext>> run(CreateUserContext context) async {
     final userId = await _repository.createUser(context.email);
     return Right(context.copyWith(userId: userId));
   }
+  
+  @override
+  Future<void> compensate(CreateUserContext context) async {
+    // Optional: cleanup/rollback on downstream failure
+    await _repository.deleteUser(context.userId!);
+  }
 }
 ```
 
-Steps return `Right(updated context)` on success or `Left(error)` on failure.
+Steps return `Right(updated context)` on success or `Left(error)` on failure. Optionally override `compensate()` to handle rollback when downstream steps fail.
 
 ### Context
 
@@ -135,13 +143,70 @@ class CreateUserStep implements RailwayStep<CreateUserContext, CreateUserError> 
 
 This keeps error mapping localized and the railway free of error-handling logic.
 
+### Compensation Pattern (Saga)
+
+When a step fails, Gradis automatically executes compensation functions in reverse order for all previously executed steps:
+
+```dart
+class ReserveInventoryStep extends RailwayStep<OrderContext, OrderError> {
+  @override
+  Future<Either<OrderError, OrderContext>> run(OrderContext context) async {
+    await _inventory.reserve(context.productId, context.quantity);
+    return Right(context.copyWith(inventoryReserved: true));
+  }
+  
+  @override
+  Future<void> compensate(OrderContext context) async {
+    // Rollback: release the reservation
+    await _inventory.release(context.productId, context.quantity);
+  }
+}
+
+class ProcessPaymentStep extends RailwayStep<OrderContext, OrderError> {
+  @override
+  Future<Either<OrderError, OrderContext>> run(OrderContext context) async {
+    final result = await _payment.charge(context.amount);
+    if (result.failed) return Left(OrderError.paymentFailed);
+    return Right(context.copyWith(paymentId: result.id));
+  }
+  
+  @override
+  Future<void> compensate(OrderContext context) async {
+    // Rollback: refund the charge
+    await _payment.refund(context.paymentId!);
+  }
+}
+
+final railway = Railway<OrderContext, OrderError>()
+    .step(ReserveInventoryStep())  // If payment fails...
+    .step(ProcessPaymentStep());    // ...inventory is auto-released
+```
+
+Compensations are **best-effort** - errors during compensation are logged but don't fail the workflow.
+
+### Branching Pattern
+
+Add conditional logic to your railway with `branch()`:
+
+```dart
+final railway = Railway<OrderContext, OrderError>()
+    .step(ValidateOrderStep())
+    .branch(
+      (ctx) => ctx.isPremiumUser,
+      (r) => r.step(ApplyPremiumDiscountStep()),
+    )
+    .step(ProcessPaymentStep());
+```
+
+The predicate is evaluated once, and the branch only executes if true. Branch steps participate in the compensation chain.
+
 ### Context Immutability Pattern
 
 Always use immutable context updates:
 
 ```dart
 // ✅ Good - immutable update
-class IncrementStep implements RailwayStep<CounterContext, CounterError> {
+class IncrementStep extends RailwayStep<CounterContext, CounterError> {
   @override
   Future<Either<CounterError, CounterContext>> run(CounterContext context) async {
     return Right(context.copyWith(count: context.count + 1));
@@ -149,7 +214,7 @@ class IncrementStep implements RailwayStep<CounterContext, CounterError> {
 }
 
 // ❌ Bad - mutable update (don't do this)
-class BadStep implements RailwayStep<CounterContext, CounterError> {
+class BadStep extends RailwayStep<CounterContext, CounterError> {
   @override
   Future<Either<CounterError, CounterContext>> run(CounterContext context) async {
     context.count++; // This won't compile if context is properly immutable

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Compensation/rollback support** (Saga pattern): Automatic best-effort cleanup when workflows fail
+  - Added `compensate()` method to `RailwayStep<C, E>` with default no-op implementation
+  - Compensation functions execute in reverse order (LIFO) when a step fails
+  - Context captured after each step execution for accurate rollback
+  - Compensation errors are suppressed to prevent cascade failures
+  - Guards are excluded from compensation (read-only operations)
+- **Conditional branching**: Predicate-based workflow branching with `branch()` method
+  - `branch(predicate, builder)` - executes branch railway only if predicate returns true
+  - Predicate evaluated once with result shared across branch operations
+  - Branch steps participate in compensation chain
+  - Skipped branches do not execute compensations
+  - Supports nested branches with independent predicate evaluation
+- **Breaking change**: `RailwayStep` changed from `abstract interface class` to `abstract class` to support default `compensate()` implementation
+  - Migration: Change step implementations from `implements RailwayStep` to `extends RailwayStep`
+  - Migration: Remove `const` constructors from step implementations
+
 ## [1.0.0] - 2026-02-17
 
 ### Added
