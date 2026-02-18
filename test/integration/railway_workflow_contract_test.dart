@@ -46,7 +46,7 @@ enum PasswordError { tooShort, tooWeak }
 enum RepositoryError { alreadyExists, connectionFailed }
 
 // Guards with error mapping
-class EmailFormatGuard implements RailwayGuard<CreateUserContext, CreateUserError> {
+class EmailFormatGuard implements RailwayGuard<CreateUserError, CreateUserContext> {
   @override
   Future<Either<CreateUserError, void>> check(CreateUserContext context) async {
     // Simulate internal validation with different error type
@@ -67,7 +67,7 @@ class EmailFormatGuard implements RailwayGuard<CreateUserContext, CreateUserErro
   }
 }
 
-class PasswordStrengthGuard implements RailwayGuard<CreateUserContext, CreateUserError> {
+class PasswordStrengthGuard implements RailwayGuard<CreateUserError, CreateUserContext> {
   @override
   Future<Either<CreateUserError, void>> check(CreateUserContext context) async {
     final internalResult = _validatePassword(context.password);
@@ -88,10 +88,10 @@ class PasswordStrengthGuard implements RailwayGuard<CreateUserContext, CreateUse
 }
 
 // Steps with error mapping and side effects
-class CreateUserStep implements RailwayStep<CreateUserContext, CreateUserError> {
+class CreateUserStep extends RailwayStep<CreateUserError, CreateUserContext> {
   final MockUserRepository repository;
 
-  const CreateUserStep(this.repository);
+  CreateUserStep(this.repository);
 
   @override
   Future<Either<CreateUserError, CreateUserContext>> run(
@@ -113,10 +113,10 @@ class CreateUserStep implements RailwayStep<CreateUserContext, CreateUserError> 
   }
 }
 
-class VerifyEmailStep implements RailwayStep<CreateUserContext, CreateUserError> {
+class VerifyEmailStep extends RailwayStep<CreateUserError, CreateUserContext> {
   final MockEmailService emailService;
 
-  const VerifyEmailStep(this.emailService);
+  VerifyEmailStep(this.emailService);
 
   @override
   Future<Either<CreateUserError, CreateUserContext>> run(
@@ -193,7 +193,7 @@ void main() {
       final repository = MockUserRepository();
       final emailService = MockEmailService();
 
-      final railway = const Railway<CreateUserContext, CreateUserError>()
+      final railway = const Railway<CreateUserError, CreateUserContext>()
           .guard(EmailFormatGuard())
           .guard(PasswordStrengthGuard())
           .step(CreateUserStep(repository))
@@ -217,7 +217,7 @@ void main() {
       final repository = MockUserRepository();
       final emailService = MockEmailService();
 
-      final railway = const Railway<CreateUserContext, CreateUserError>()
+      final railway = const Railway<CreateUserError, CreateUserContext>()
           .guard(EmailFormatGuard())
           .guard(PasswordStrengthGuard())
           .step(CreateUserStep(repository))
@@ -240,7 +240,7 @@ void main() {
       final repository = MockUserRepository(userExists: true);
       final emailService = MockEmailService();
 
-      final railway = const Railway<CreateUserContext, CreateUserError>()
+      final railway = const Railway<CreateUserError, CreateUserContext>()
           .guard(EmailFormatGuard())
           .guard(PasswordStrengthGuard())
           .step(CreateUserStep(repository))
@@ -261,7 +261,7 @@ void main() {
       final repository = MockUserRepository();
       final emailService = MockEmailService();
 
-      final railway = const Railway<CreateUserContext, CreateUserError>()
+      final railway = const Railway<CreateUserError, CreateUserContext>()
           .guard(EmailFormatGuard())
           .guard(PasswordStrengthGuard())
           .step(CreateUserStep(repository))
@@ -291,7 +291,7 @@ void main() {
       final emailService = MockEmailService();
       final transactionRunner = MockTransactionRunner();
 
-      final railway = const Railway<CreateUserContext, CreateUserError>()
+      final railway = const Railway<CreateUserError, CreateUserContext>()
           .guard(EmailFormatGuard())
           .guard(PasswordStrengthGuard())
           .step(CreateUserStep(repository))

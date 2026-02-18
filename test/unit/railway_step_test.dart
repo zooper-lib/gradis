@@ -21,7 +21,7 @@ final class TestContext {
 enum TestError { stepFailed, repositoryError }
 
 // Step that verifies received context
-class ContextCheckStep implements RailwayStep<TestContext, TestError> {
+class ContextCheckStep extends RailwayStep<TestError, TestContext> {
   final String expectedData;
   String? receivedData;
 
@@ -38,10 +38,10 @@ class ContextCheckStep implements RailwayStep<TestContext, TestError> {
 }
 
 // Successful step that updates context
-class IncrementStep implements RailwayStep<TestContext, TestError> {
+class IncrementStep extends RailwayStep<TestError, TestContext> {
   final int incrementBy;
 
-  const IncrementStep({this.incrementBy = 1});
+  IncrementStep({this.incrementBy = 1});
 
   @override
   Future<Either<TestError, TestContext>> run(TestContext context) async {
@@ -50,7 +50,7 @@ class IncrementStep implements RailwayStep<TestContext, TestError> {
 }
 
 // Failing step
-class FailStep implements RailwayStep<TestContext, TestError> {
+class FailStep extends RailwayStep<TestError, TestContext> {
   @override
   Future<Either<TestError, TestContext>> run(TestContext context) async {
     return const Left(TestError.stepFailed);
@@ -58,10 +58,10 @@ class FailStep implements RailwayStep<TestContext, TestError> {
 }
 
 // Step with side effects (mock repository)
-class RepositoryStep implements RailwayStep<TestContext, TestError> {
+class RepositoryStep extends RailwayStep<TestError, TestContext> {
   final MockRepository repository;
 
-  const RepositoryStep(this.repository);
+  RepositoryStep(this.repository);
 
   @override
   Future<Either<TestError, TestContext>> run(TestContext context) async {
@@ -99,7 +99,7 @@ void main() {
     });
 
     test('successful step returns Right(updated context)', () async {
-      final step = const IncrementStep(incrementBy: 5);
+      final step = IncrementStep(incrementBy: 5);
       final context = const TestContext(data: 'test', counter: 10);
 
       final result = await step.run(context);
@@ -120,10 +120,8 @@ void main() {
     });
 
     test('context accumulation across multiple steps', () async {
-      final railway = const Railway<TestContext, TestError>()
-          .step(const IncrementStep(incrementBy: 10))
-          .step(const IncrementStep(incrementBy: 5))
-          .step(const IncrementStep(incrementBy: 3));
+      final railway =
+          const Railway<TestError, TestContext>().step(IncrementStep(incrementBy: 10)).step(IncrementStep(incrementBy: 5)).step(IncrementStep(incrementBy: 3));
 
       final result = await railway.run(const TestContext(data: 'test'));
 
@@ -132,8 +130,7 @@ void main() {
     });
 
     test('step failure short-circuits remaining steps', () async {
-      final railway =
-          const Railway<TestContext, TestError>().step(const IncrementStep(incrementBy: 10)).step(FailStep()).step(const IncrementStep(incrementBy: 5));
+      final railway = const Railway<TestError, TestContext>().step(IncrementStep(incrementBy: 10)).step(FailStep()).step(IncrementStep(incrementBy: 5));
 
       final result = await railway.run(const TestContext(data: 'test'));
 
