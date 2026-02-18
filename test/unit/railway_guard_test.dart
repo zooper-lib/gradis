@@ -21,7 +21,7 @@ final class TestContext {
 enum TestError { guardFailed, otherError }
 
 // Test guard that tracks context
-class ContextCheckGuard implements RailwayGuard<TestContext, TestError> {
+class ContextCheckGuard implements RailwayGuard<TestError, TestContext> {
   final String expectedValue;
   String? receivedValue;
 
@@ -38,7 +38,7 @@ class ContextCheckGuard implements RailwayGuard<TestContext, TestError> {
 }
 
 // Successful guard
-class SuccessGuard implements RailwayGuard<TestContext, TestError> {
+class SuccessGuard implements RailwayGuard<TestError, TestContext> {
   @override
   Future<Either<TestError, void>> check(TestContext context) async {
     return const Right(null);
@@ -46,7 +46,7 @@ class SuccessGuard implements RailwayGuard<TestContext, TestError> {
 }
 
 // Failing guard
-class FailGuard implements RailwayGuard<TestContext, TestError> {
+class FailGuard implements RailwayGuard<TestError, TestContext> {
   @override
   Future<Either<TestError, void>> check(TestContext context) async {
     return const Left(TestError.guardFailed);
@@ -54,7 +54,7 @@ class FailGuard implements RailwayGuard<TestContext, TestError> {
 }
 
 // Counter guard to track execution
-class CounterGuard implements RailwayGuard<TestContext, TestError> {
+class CounterGuard implements RailwayGuard<TestError, TestContext> {
   int executionCount = 0;
 
   @override
@@ -109,7 +109,7 @@ void main() {
       final guard2 = CounterGuard();
       final guard3 = CounterGuard();
 
-      final railway = const Railway<TestContext, TestError>().guard(guard1).guard(guard2).guard(guard3);
+      final railway = const Railway<TestError, TestContext>().guard(guard1).guard(guard2).guard(guard3);
 
       await railway.run(const TestContext('test'));
 
@@ -123,7 +123,7 @@ void main() {
       final guard2 = FailGuard();
       final guard3 = CounterGuard();
 
-      final railway = const Railway<TestContext, TestError>().guard(guard1).guard(guard2).guard(guard3);
+      final railway = const Railway<TestError, TestContext>().guard(guard1).guard(guard2).guard(guard3);
 
       final result = await railway.run(const TestContext('test'));
 

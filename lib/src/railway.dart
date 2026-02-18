@@ -2,11 +2,13 @@ import 'package:either_dart/either.dart';
 import 'railway_guard.dart';
 import 'railway_step.dart';
 
+part 'railway_switch_builder.dart';
+
 /// Internal structure pairing an operation with its optional compensation.
 ///
 /// This encapsulates both the forward execution function and the optional
 /// compensation function that should run if a later operation fails.
-class _Operation<C, E> {
+class _Operation<E, C> {
   /// The operation to execute (guard check or step run).
   final Future<Either<E, C>> Function(C) execute;
 
@@ -27,10 +29,10 @@ class _Operation<C, E> {
 /// call returns a new [Railway] instance with the operation appended.
 ///
 /// Type parameters:
-/// - [C]: The context type that flows through the pipeline
 /// - [E]: The unified error type for all operations
-final class Railway<C, E> {
-  final List<_Operation<C, E>> _operations;
+/// - [C]: The context type that flows through the pipeline
+final class Railway<E, C> {
+  final List<_Operation<E, C>> _operations;
 
   /// Creates a new railway with an optional existing operations list.
   ///
@@ -43,7 +45,7 @@ final class Railway<C, E> {
   /// The original railway instance remains unchanged (immutable builder pattern).
   ///
   /// Guards perform read-only validation and do not modify the context.
-  Railway<C, E> guard(RailwayGuard<C, E> guard) {
+  Railway<E, C> guard(RailwayGuard<E, C> guard) {
     return Railway([
       ..._operations,
       _Operation(
@@ -66,7 +68,7 @@ final class Railway<C, E> {
   /// The original railway instance remains unchanged (immutable builder pattern).
   ///
   /// Steps perform state mutation and return an updated context.
-  Railway<C, E> step(RailwayStep<C, E> step) {
+  Railway<E, C> step(RailwayStep<E, C> step) {
     return Railway([
       ..._operations,
       _Operation(
@@ -74,6 +76,41 @@ final class Railway<C, E> {
         (C context) => step.compensate(context),
       ),
     ]);
+  }
+
+  /// Creates a switch for exclusive choice routing based on a selector function.
+  ///
+  /// The [selector] function extracts a value from the context that determines
+  /// which case to execute. Returns a [SwitchBuilder] for defining cases with
+  /// [SwitchBuilder.when], [SwitchBuilder.whenMatch], and optionally
+  /// [SwitchBuilder.otherwise].
+  ///
+  /// The selector is evaluated exactly once per switch execution. Cases are
+  /// checked in order until the first match. Only the matched case's operations
+  /// are added to the railway. All switch case operations participate in the
+  /// main railway's compensation stack.
+  ///
+  /// Example with value matching:
+  /// ```dart
+  /// Railway<MyError, MyContext>()
+  ///   .step(ValidateUser())
+  ///   .switchOn((ctx) => ctx.userType)
+  ///     .when(UserType.admin, (r) => r.step(AdminOnlyStep()))
+  ///     .when(UserType.user, (r) => r.step(StandardUserStep()))
+  ///     .otherwise((r) => r.step(GuestStep()))
+  ///   .step(ContinueWorkflow())
+  /// ```
+  ///
+  /// Example with predicate matching:
+  /// ```dart
+  /// Railway<MyError, MyContext>()
+  ///   .switchOn((ctx) => ctx.age)
+  ///     .whenMatch((age) => age < 18, (r) => r.step(MinorFlow()))
+  ///     .whenMatch((age) => age >= 18, (r) => r.step(AdultFlow()))
+  ///     .end()
+  /// ```
+  SwitchBuilder<E, C, T> switchOn<T>(T Function(C) selector) {
+    return SwitchBuilder<E, C, T>.create(this, selector);
   }
 
   /// Adds a conditional branch to the railway pipeline.
@@ -92,7 +129,7 @@ final class Railway<C, E> {
   ///
   /// Example:
   /// ```dart
-  /// final railway = Railway<MyContext, MyError>()
+  /// final railway = Railway<MyError, MyContext>()
   ///   .step(ValidateInput())
   ///   .branch(
   ///     (ctx) => ctx.isAdmin,
@@ -105,12 +142,12 @@ final class Railway<C, E> {
   ///
   /// Nested branches are supported - a branch sub-pipeline can contain
   /// additional branches. Compensation order correctly reflects nesting.
-  Railway<C, E> branch(
+  Railway<E, C> branch(
     bool Function(C) predicate,
-    Railway<C, E> Function(Railway<C, E>) builder,
+    Railway<E, C> Function(Railway<E, C>) builder,
   ) {
     // Build the branch sub-pipeline to extract its operations
-    final branchRailway = builder(Railway<C, E>());
+    final branchRailway = builder(Railway<E, C>());
     final branchOperations = branchRailway._operations;
 
     if (branchOperations.isEmpty) {
@@ -122,13 +159,13 @@ final class Railway<C, E> {
     bool? shouldExecuteBranch;
 
     // Create wrapped operations that check the predicate result
-    final wrappedOperations = <_Operation<C, E>>[];
+    final wrappedOperations = <_Operation<E, C>>[];
 
     for (var i = 0; i < branchOperations.length; i++) {
       final op = branchOperations[i];
       final isFirst = i == 0;
 
-      wrappedOperations.add(_Operation<C, E>(
+      wrappedOperations.add(_Operation<E, C>(
         (C context) async {
           // First operation evaluates the predicate
           if (isFirst) {

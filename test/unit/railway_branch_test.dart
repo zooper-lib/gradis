@@ -33,7 +33,7 @@ class TestContext {
 enum TestError { stepFailed, guardFailed }
 
 // Step for testing
-class TestStep extends RailwayStep<TestContext, TestError> {
+class TestStep extends RailwayStep<TestError, TestContext> {
   final String name;
   final int increment;
   final bool shouldFail;
@@ -63,7 +63,7 @@ class TestStep extends RailwayStep<TestContext, TestError> {
 }
 
 // Guard for testing
-class TestGuard implements RailwayGuard<TestContext, TestError> {
+class TestGuard implements RailwayGuard<TestError, TestContext> {
   final String name;
   final bool shouldFail;
   final List<String>? executionLog;
@@ -83,7 +83,7 @@ class TestGuard implements RailwayGuard<TestContext, TestError> {
 void main() {
   group('Railway Branch', () {
     test('branch with true predicate executes sub-pipeline', () async {
-      final railway = const Railway<TestContext, TestError>()
+      final railway = const Railway<TestError, TestContext>()
           .step(TestStep('before'))
           .branch(
             (ctx) => ctx.isAdmin,
@@ -98,7 +98,7 @@ void main() {
     });
 
     test('branch with false predicate skips sub-pipeline', () async {
-      final railway = const Railway<TestContext, TestError>()
+      final railway = const Railway<TestError, TestContext>()
           .step(TestStep('before'))
           .branch(
             (ctx) => ctx.isAdmin,
@@ -116,7 +116,7 @@ void main() {
     test('branch step compensations execute on later failure', () async {
       final compensationLog = <String>[];
 
-      final railway = const Railway<TestContext, TestError>()
+      final railway = const Railway<TestError, TestContext>()
           .step(TestStep('step1', compensationLog: compensationLog))
           .branch(
             (ctx) => ctx.isAdmin,
@@ -133,7 +133,7 @@ void main() {
     test('skipped branch has no compensations', () async {
       final compensationLog = <String>[];
 
-      final railway = const Railway<TestContext, TestError>()
+      final railway = const Railway<TestError, TestContext>()
           .step(TestStep('step1', compensationLog: compensationLog))
           .branch(
             (ctx) => ctx.isAdmin,
@@ -149,7 +149,7 @@ void main() {
     });
 
     test('branch step failure propagates to main pipeline', () async {
-      final railway = const Railway<TestContext, TestError>()
+      final railway = const Railway<TestError, TestContext>()
           .step(TestStep('before'))
           .branch(
             (ctx) => ctx.isAdmin,
@@ -164,7 +164,7 @@ void main() {
     });
 
     test('branch guard failure propagates to main pipeline', () async {
-      final railway = const Railway<TestContext, TestError>()
+      final railway = const Railway<TestError, TestContext>()
           .step(TestStep('before'))
           .branch(
             (ctx) => ctx.isAdmin,
@@ -179,7 +179,7 @@ void main() {
     });
 
     test('nested branches execute correctly', () async {
-      final railway = const Railway<TestContext, TestError>()
+      final railway = const Railway<TestError, TestContext>()
           .step(TestStep('step1'))
           .branch(
             (ctx) => ctx.value > 0,
@@ -202,7 +202,7 @@ void main() {
     test('nested branch compensations execute in correct reverse order', () async {
       final compensationLog = <String>[];
 
-      final railway = const Railway<TestContext, TestError>()
+      final railway = const Railway<TestError, TestContext>()
           .step(TestStep('step1', compensationLog: compensationLog))
           .branch(
             (ctx) => ctx.value > 0,
@@ -221,7 +221,7 @@ void main() {
     });
 
     test('branch maintains immutable builder pattern', () async {
-      final railway1 = const Railway<TestContext, TestError>().step(TestStep('step1'));
+      final railway1 = const Railway<TestError, TestContext>().step(TestStep('step1'));
 
       final railway2 = railway1.branch(
         (ctx) => ctx.isAdmin,

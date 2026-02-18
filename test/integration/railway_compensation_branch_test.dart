@@ -50,7 +50,7 @@ class OrderContext {
 enum OrderError { invalidQuantity, insufficientInventory, paymentFailed }
 
 // Guards
-class ValidQuantityGuard implements RailwayGuard<OrderContext, OrderError> {
+class ValidQuantityGuard implements RailwayGuard<OrderError, OrderContext> {
   @override
   Future<Either<OrderError, void>> check(OrderContext context) async {
     if (context.quantity <= 0 || context.quantity > 100) {
@@ -61,7 +61,7 @@ class ValidQuantityGuard implements RailwayGuard<OrderContext, OrderError> {
 }
 
 // Steps with compensation
-class ReserveInventoryStep extends RailwayStep<OrderContext, OrderError> {
+class ReserveInventoryStep extends RailwayStep<OrderError, OrderContext> {
   final bool shouldFail;
 
   ReserveInventoryStep({this.shouldFail = false});
@@ -83,7 +83,7 @@ class ReserveInventoryStep extends RailwayStep<OrderContext, OrderError> {
   }
 }
 
-class ProcessPaymentStep extends RailwayStep<OrderContext, OrderError> {
+class ProcessPaymentStep extends RailwayStep<OrderError, OrderContext> {
   final bool shouldFail;
 
   ProcessPaymentStep({this.shouldFail = false});
@@ -105,7 +105,7 @@ class ProcessPaymentStep extends RailwayStep<OrderContext, OrderError> {
   }
 }
 
-class SendNotificationStep extends RailwayStep<OrderContext, OrderError> {
+class SendNotificationStep extends RailwayStep<OrderError, OrderContext> {
   @override
   Future<Either<OrderError, OrderContext>> run(OrderContext context) async {
     return Right(
@@ -114,7 +114,7 @@ class SendNotificationStep extends RailwayStep<OrderContext, OrderError> {
   }
 }
 
-class ApplyPremiumDiscountStep extends RailwayStep<OrderContext, OrderError> {
+class ApplyPremiumDiscountStep extends RailwayStep<OrderError, OrderContext> {
   @override
   Future<Either<OrderError, OrderContext>> run(OrderContext context) async {
     return Right(context.addLog('Premium discount applied'));
@@ -124,7 +124,7 @@ class ApplyPremiumDiscountStep extends RailwayStep<OrderContext, OrderError> {
 void main() {
   group('Integration: Complex Workflow', () {
     test('successful order workflow with branch', () async {
-      final railway = Railway<OrderContext, OrderError>()
+      final railway = const Railway<OrderError, OrderContext>()
           .guard(ValidQuantityGuard())
           .step(ReserveInventoryStep())
           .branch(
@@ -146,7 +146,7 @@ void main() {
     });
 
     test('compensations execute in reverse order when payment fails', () async {
-      final railway = Railway<OrderContext, OrderError>()
+      final railway = const Railway<OrderError, OrderContext>()
           .guard(ValidQuantityGuard())
           .step(ReserveInventoryStep())
           .step(ProcessPaymentStep(shouldFail: true))
@@ -161,7 +161,7 @@ void main() {
     });
 
     test('nested branches with compensations', () async {
-      final railway = Railway<OrderContext, OrderError>().step(ReserveInventoryStep()).branch(
+      final railway = const Railway<OrderError, OrderContext>().step(ReserveInventoryStep()).branch(
             (ctx) => ctx.inventoryReserved,
             (r) => r.step(ProcessPaymentStep()).branch(
                   (ctx) => ctx.paymentProcessed,
@@ -184,7 +184,7 @@ void main() {
       final trackingBranchStep = _TrackingStep('branch-step', compensationLog);
       final trackingFailing = _TrackingStep('failing', compensationLog, shouldFail: true);
 
-      final railway = Railway<OrderContext, OrderError>()
+      final railway = const Railway<OrderError, OrderContext>()
           .step(trackingReserve)
           .branch(
             (ctx) => true,
@@ -201,7 +201,7 @@ void main() {
 
     test('existing integration tests still pass', () async {
       // Verify backward compatibility
-      final railway = Railway<OrderContext, OrderError>().guard(ValidQuantityGuard()).step(ReserveInventoryStep()).step(ProcessPaymentStep());
+      final railway = const Railway<OrderError, OrderContext>().guard(ValidQuantityGuard()).step(ReserveInventoryStep()).step(ProcessPaymentStep());
 
       final result = await railway.run(const OrderContext(quantity: 10));
 
@@ -211,7 +211,7 @@ void main() {
 }
 
 // Helper for tracking compensation
-class _TrackingStep extends RailwayStep<OrderContext, OrderError> {
+class _TrackingStep extends RailwayStep<OrderError, OrderContext> {
   final String name;
   final List<String> log;
   final bool shouldFail;

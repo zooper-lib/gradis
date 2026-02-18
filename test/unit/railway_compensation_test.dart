@@ -27,7 +27,7 @@ class TestContext {
 enum TestError { stepFailed, guardFailed }
 
 // Step with compensation tracking
-class CompensatingStep extends RailwayStep<TestContext, TestError> {
+class CompensatingStep extends RailwayStep<TestError, TestContext> {
   final String name;
   final int increment;
   final bool shouldFail;
@@ -57,7 +57,7 @@ class CompensatingStep extends RailwayStep<TestContext, TestError> {
 }
 
 // Step that tracks compensation in a mutable list (for testing)
-class TrackingCompensatingStep extends RailwayStep<TestContext, TestError> {
+class TrackingCompensatingStep extends RailwayStep<TestError, TestContext> {
   final String name;
   final int increment;
   final bool shouldFail;
@@ -92,7 +92,7 @@ class TrackingCompensatingStep extends RailwayStep<TestContext, TestError> {
 }
 
 // Guard for testing
-class TestGuard implements RailwayGuard<TestContext, TestError> {
+class TestGuard implements RailwayGuard<TestError, TestContext> {
   final bool shouldFail;
 
   TestGuard({this.shouldFail = false});
@@ -111,7 +111,7 @@ void main() {
     test('step with compensation executes compensation on failure', () async {
       final compensationLog = <String>[];
 
-      final railway = const Railway<TestContext, TestError>()
+      final railway = const Railway<TestError, TestContext>()
           .step(TrackingCompensatingStep('step1', compensationLog, increment: 10))
           .step(TrackingCompensatingStep('step2', compensationLog, shouldFail: true));
 
@@ -125,7 +125,7 @@ void main() {
     test('multiple steps with compensations execute in reverse order', () async {
       final compensationLog = <String>[];
 
-      final railway = const Railway<TestContext, TestError>()
+      final railway = const Railway<TestError, TestContext>()
           .step(TrackingCompensatingStep('step1', compensationLog, increment: 5))
           .step(TrackingCompensatingStep('step2', compensationLog, increment: 10))
           .step(TrackingCompensatingStep('step3', compensationLog, increment: 3))
@@ -144,7 +144,7 @@ void main() {
     test('early failure prevents later step compensations', () async {
       final compensationLog = <String>[];
 
-      final railway = const Railway<TestContext, TestError>()
+      final railway = const Railway<TestError, TestContext>()
           .step(TrackingCompensatingStep('step1', compensationLog, increment: 10))
           .step(TrackingCompensatingStep('step2', compensationLog, shouldFail: true))
           .step(TrackingCompensatingStep('step3', compensationLog, increment: 5));
@@ -159,7 +159,7 @@ void main() {
     test('successful pipeline does not execute compensations', () async {
       final compensationLog = <String>[];
 
-      final railway = const Railway<TestContext, TestError>()
+      final railway = const Railway<TestError, TestContext>()
           .step(TrackingCompensatingStep('step1', compensationLog, increment: 10))
           .step(TrackingCompensatingStep('step2', compensationLog, increment: 5));
 
@@ -178,7 +178,7 @@ void main() {
       // Step3 fails
       // Compensation for step2 should receive context with value=10 (when it executed)
       // Compensation for step1 should receive context with value=0 (when it executed)
-      final railway = const Railway<TestContext, TestError>()
+      final railway = const Railway<TestError, TestContext>()
           .step(TrackingCompensatingStep('step1', compensationLog, increment: 10))
           .step(TrackingCompensatingStep('step2', compensationLog, increment: 10))
           .step(TrackingCompensatingStep('step3', compensationLog, shouldFail: true));
@@ -195,7 +195,7 @@ void main() {
     test('compensation error is suppressed and original error returned', () async {
       final compensationLog = <String>[];
 
-      final railway = const Railway<TestContext, TestError>()
+      final railway = const Railway<TestError, TestContext>()
           .step(TrackingCompensatingStep(
             'step1',
             compensationLog,
@@ -213,7 +213,7 @@ void main() {
     test('multiple compensation failures do not stop cleanup', () async {
       final compensationLog = <String>[];
 
-      final railway = const Railway<TestContext, TestError>()
+      final railway = const Railway<TestError, TestContext>()
           .step(TrackingCompensatingStep(
             'step1',
             compensationLog,
@@ -240,7 +240,7 @@ void main() {
     test('guards are excluded from compensation', () async {
       final compensationLog = <String>[];
 
-      final railway = const Railway<TestContext, TestError>()
+      final railway = const Railway<TestError, TestContext>()
           .guard(TestGuard())
           .step(TrackingCompensatingStep('step1', compensationLog, increment: 10))
           .guard(TestGuard())
@@ -257,7 +257,7 @@ void main() {
       final compensationLog = <String>[];
 
       final railway =
-          const Railway<TestContext, TestError>().guard(TestGuard(shouldFail: true)).step(TrackingCompensatingStep('step1', compensationLog, increment: 10));
+          const Railway<TestError, TestContext>().guard(TestGuard(shouldFail: true)).step(TrackingCompensatingStep('step1', compensationLog, increment: 10));
 
       final result = await railway.run(const TestContext());
 

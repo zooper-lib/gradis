@@ -25,7 +25,7 @@ final class TestContext {
 enum TestError { guardError, stepError }
 
 // Logging guard
-class LoggingGuard implements RailwayGuard<TestContext, TestError> {
+class LoggingGuard implements RailwayGuard<TestError, TestContext> {
   final String logMessage;
   final bool shouldFail;
 
@@ -44,7 +44,7 @@ class LoggingGuard implements RailwayGuard<TestContext, TestError> {
 }
 
 // Logging step
-class LoggingStep extends RailwayStep<TestContext, TestError> {
+class LoggingStep extends RailwayStep<TestError, TestContext> {
   final String logMessage;
   final int increment;
   final bool shouldFail;
@@ -73,7 +73,7 @@ class LoggingStep extends RailwayStep<TestContext, TestError> {
 void main() {
   group('Railway Execution Engine', () {
     test('empty railway returns initial context', () async {
-      const railway = Railway<TestContext, TestError>();
+      const railway = Railway<TestError, TestContext>();
       const context = TestContext(log: ['initial']);
 
       final result = await railway.run(context);
@@ -83,7 +83,7 @@ void main() {
     });
 
     test('all operations succeed returns final context', () async {
-      final railway = const Railway<TestContext, TestError>()
+      final railway = const Railway<TestError, TestContext>()
           .guard(const LoggingGuard('guard1'))
           .step(LoggingStep('step1', increment: 10))
           .guard(const LoggingGuard('guard2'))
@@ -97,10 +97,8 @@ void main() {
     });
 
     test('guard failure stops execution and returns error', () async {
-      final railway = const Railway<TestContext, TestError>()
-          .step(LoggingStep('step1'))
-          .guard(const LoggingGuard('guard1', shouldFail: true))
-          .step(LoggingStep('step2'));
+      final railway =
+          const Railway<TestError, TestContext>().step(LoggingStep('step1')).guard(const LoggingGuard('guard1', shouldFail: true)).step(LoggingStep('step2'));
 
       final result = await railway.run(const TestContext(log: []));
 
@@ -109,10 +107,8 @@ void main() {
     });
 
     test('step failure stops execution and returns error', () async {
-      final railway = const Railway<TestContext, TestError>()
-          .step(LoggingStep('step1'))
-          .step(LoggingStep('step2', shouldFail: true))
-          .step(LoggingStep('step3'));
+      final railway =
+          const Railway<TestError, TestContext>().step(LoggingStep('step1')).step(LoggingStep('step2', shouldFail: true)).step(LoggingStep('step3'));
 
       final result = await railway.run(const TestContext(log: []));
 
@@ -129,7 +125,7 @@ void main() {
       final step2 = _OrderTrackingStep('step2', executionOrder);
       final step3 = _OrderTrackingStep('step3', executionOrder);
 
-      final railway = const Railway<TestContext, TestError>().step(step1).step(step2).step(step3);
+      final railway = const Railway<TestError, TestContext>().step(step1).step(step2).step(step3);
 
       await railway.run(const TestContext(log: []));
 
@@ -138,7 +134,7 @@ void main() {
 
     test('Either short-circuit behavior with fold', () async {
       // This test verifies that fold-based composition short-circuits correctly
-      final railway = const Railway<TestContext, TestError>()
+      final railway = const Railway<TestError, TestContext>()
           .step(LoggingStep('step1', increment: 1))
           .guard(const LoggingGuard('guard1', shouldFail: true))
           .step(LoggingStep('step2', increment: 1))
@@ -151,7 +147,7 @@ void main() {
     });
 
     test('execution is deterministic and predictable', () async {
-      final railway = const Railway<TestContext, TestError>()
+      final railway = const Railway<TestError, TestContext>()
           .step(LoggingStep('a', increment: 1))
           .step(LoggingStep('b', increment: 2))
           .step(LoggingStep('c', increment: 3));
@@ -169,7 +165,7 @@ void main() {
 }
 
 // Helper class to track execution order
-class _OrderTrackingStep extends RailwayStep<TestContext, TestError> {
+class _OrderTrackingStep extends RailwayStep<TestError, TestContext> {
   final String name;
   final List<String> executionOrder;
 

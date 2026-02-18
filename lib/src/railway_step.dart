@@ -10,9 +10,9 @@ import 'package:either_dart/either.dart';
 /// order (LIFO) for all successfully completed steps.
 ///
 /// Type parameters:
-/// - [C]: The context type to mutate and return
 /// - [E]: The error type to return on failure
-abstract class RailwayStep<C, E> {
+/// - [C]: The context type to mutate and return
+abstract class RailwayStep<E, C> {
   /// Executes the step and returns either an error or updated context.
   ///
   /// Returns [Right] with the updated context if the step succeeds.
@@ -41,7 +41,7 @@ abstract class RailwayStep<C, E> {
   ///
   /// Example:
   /// ```dart
-  /// class CreateUserStep extends RailwayStep<MyContext, MyError> {
+  /// class CreateUserStep extends RailwayStep<MyError, MyContext> {
   ///   @override
   ///   Future<Either<MyError, MyContext>> run(MyContext context) async {
   ///     final user = await api.createUser(context.userData);

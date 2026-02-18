@@ -16,7 +16,7 @@ final class TestContext {
 enum TestError { guardFailed, stepFailed }
 
 // Test guard
-class TestGuard implements RailwayGuard<TestContext, TestError> {
+class TestGuard implements RailwayGuard<TestError, TestContext> {
   final bool shouldFail;
   const TestGuard({this.shouldFail = false});
 
@@ -30,7 +30,7 @@ class TestGuard implements RailwayGuard<TestContext, TestError> {
 }
 
 // Test step
-class TestStep extends RailwayStep<TestContext, TestError> {
+class TestStep extends RailwayStep<TestError, TestContext> {
   final int increment;
   final bool shouldFail;
 
@@ -48,30 +48,27 @@ class TestStep extends RailwayStep<TestContext, TestError> {
 void main() {
   group('Railway Builder', () {
     test('creating empty railway instance', () {
-      final railway = const Railway<TestContext, TestError>();
+      final railway = const Railway<TestError, TestContext>();
       expect(railway, isNotNull);
     });
 
     test('guard() returns new immutable instance', () {
-      final railway1 = const Railway<TestContext, TestError>();
+      final railway1 = const Railway<TestError, TestContext>();
       final railway2 = railway1.guard(const TestGuard());
 
       expect(railway1, isNot(same(railway2)));
     });
 
     test('step() returns new immutable instance', () {
-      final railway1 = const Railway<TestContext, TestError>();
+      final railway1 = const Railway<TestError, TestContext>();
       final railway2 = railway1.step(TestStep());
 
       expect(railway1, isNot(same(railway2)));
     });
 
     test('chaining multiple guards and steps preserves order', () async {
-      final railway = const Railway<TestContext, TestError>()
-          .guard(const TestGuard())
-          .guard(const TestGuard())
-          .step(TestStep(increment: 10))
-          .step(TestStep(increment: 5));
+      final railway =
+          const Railway<TestError, TestContext>().guard(const TestGuard()).guard(const TestGuard()).step(TestStep(increment: 10)).step(TestStep(increment: 5));
 
       final result = await railway.run(const TestContext(0));
 
@@ -80,7 +77,7 @@ void main() {
     });
 
     test('original railway unchanged after builder calls', () async {
-      final railway1 = const Railway<TestContext, TestError>();
+      final railway1 = const Railway<TestError, TestContext>();
       railway1.guard(const TestGuard());
       railway1.step(TestStep());
 
@@ -93,9 +90,9 @@ void main() {
     test('type safety with context and error types', () {
       // This test verifies compile-time type safety
       // If this compiles, the type constraints are working correctly
-      final railway = const Railway<TestContext, TestError>().guard(const TestGuard()).step(TestStep());
+      final railway = const Railway<TestError, TestContext>().guard(const TestGuard()).step(TestStep());
 
-      expect(railway, isA<Railway<TestContext, TestError>>());
+      expect(railway, isA<Railway<TestError, TestContext>>());
     });
   });
 }
