@@ -1,6 +1,6 @@
 name: gradis
 description: A railway-oriented programming package for Dart providing strongly-typed, declarative workflow orchestration with guards and steps.
-version: 1.0.0
+version: 2.0.0
 repository: https://github.com/Zooper/gradis
 
 environment:
